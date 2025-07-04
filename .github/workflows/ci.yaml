@@ -1,0 +1,31 @@
+name: Build and Push Docker Image to GCR
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCR_CREDENTIALS }}
+
+      - name: Configure Docker to use gcloud credentials
+        run: |
+          gcloud auth configure-docker
+
+      - name: Build and push Docker image to GCR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: gcr.io/${{ secrets.GCP_PROJECT_ID }}/web_ci:latest
