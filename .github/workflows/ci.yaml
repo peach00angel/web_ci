@@ -3,7 +3,7 @@ name: Build and Push Docker Image to GCR
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
 
       - name: Configure Docker to use gcloud credentials
         run: |
-          gcloud auth configure-docker
+          gcloud auth configure-docker gcr.io
 
       - name: Build and push Docker image to GCR
         uses: docker/build-push-action@v5
@@ -28,4 +28,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: gcr.io/${{ secrets.GCP_PROJECT_ID }}/web_ci:latest
+          tags: gcr.io/your-project-id/web_ci:latest
