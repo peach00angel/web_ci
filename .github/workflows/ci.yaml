@@ -28,4 +28,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: gcr.io/your-project-id/web_ci:latest
+          tags: gcr.io/kdt1-finalproject/web_ci:latest
