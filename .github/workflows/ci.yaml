@@ -3,7 +3,7 @@ name: Build and Push Docker Image to GCR
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   build:
@@ -13,14 +13,23 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests -PMySQL
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCR_CREDENTIALS }}
 
-      - name: Configure Docker to use gcloud credentials
+      - name: Set up Docker credentials for GCR
         run: |
-          gcloud auth configure-docker gcr.io
+          gcloud auth configure-docker
 
       - name: Build and push Docker image to GCR
         uses: docker/build-push-action@v5
@@ -28,4 +37,20 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: gcr.io/kdt1-finalproject/web_ci:latest
+          tags: gcr.io/${{ secrets.GCP_PROJECT_ID }}/petclinic:${{ github.sha }}
+      
+      - name: Update Helm appVersion and tag with numeric version
+        run: |
+          CURRENT_TAG=$(grep "tag:" was/values.yaml | awk '{print $2}')
+          NEXT_TAG=$((CURRENT_TAG + 1))
+
+          sed -i "s/^  tag: .*/  tag: $NEXT_TAG/" was/values.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$NEXT_TAG\"/" was/Chart.yaml
+
+      - name: Commit Helm update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add was/Chart.yaml was/values.yaml
+          git commit -m "Update WAS Helm tag to $SHORT_SHA"
+          git push
