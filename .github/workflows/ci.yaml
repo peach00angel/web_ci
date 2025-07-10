@@ -21,26 +21,27 @@ jobs:
       - name: Configure Docker to use gcloud credentials
         run: gcloud auth configure-docker gcr.io
 
+      - name: Set dynamic image tag (timestamp)
+        id: image_tag
+        run: echo "TAG=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+
       - name: Build and push Docker image to GCR
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: gcr.io/kdt1-finalproject/web_ci:${{ github.sha }}
+          tags: gcr.io/kdt1-finalproject/web_ci:${{ env.TAG }}
 
-      - name: Update Helm appVersion and tag with numeric version
+      - name: Update deployment.yaml with new image tag
         run: |
-          CURRENT_TAG=$(grep "tag:" web/values.yaml | awk '{print $2}')
-          NEXT_TAG=$((CURRENT_TAG + 1))
+          sed -i "s|image: gcr.io/kdt1-finalproject/web_ci:.*|image: gcr.io/kdt1-finalproject/web_ci:${{ env.TAG }}|" k8s/web/deployment.yaml
 
-          sed -i "s/^  tag: .*/  tag: $NEXT_TAG/" web/values.yaml
-          sed -i "s/^appVersion: .*/appVersion: \"$NEXT_TAG\"/" web/Chart.yaml
-
-      - name: Commit and Push updated Helm values
+      - name: Commit and push updated deployment.yaml
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add web/Chart.yaml web/values.yaml
-          git commit -m "Update Web Helm tag to $SHORT_SHA"
+          git add k8s/web/deployment.yaml
+          git commit -m "Update web deployment image to ${{ env.TAG }}"
           git push
+
