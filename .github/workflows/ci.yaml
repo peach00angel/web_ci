@@ -1,16 +1,9 @@
-name: Build and Push Web Docker Image to GCR
-
-on:
-  push:
-    branches:
-      - master
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      - name: Checkout source code (CI repo)
         uses: actions/checkout@v3
 
       - name: Authenticate to Google Cloud
@@ -33,12 +26,17 @@ jobs:
           push: true
           tags: gcr.io/kdt1-finalproject/web_ci:${{ env.TAG }}
 
+      - name: Clone petclinic_cd repository (CD repo)
+        run: |
+          git clone https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/peach00angel/petclinic_cd.git
+
       - name: Update deployment.yaml with new image tag
         run: |
-          sed -i "s|image: gcr.io/kdt1-finalproject/web_ci:.*|image: gcr.io/kdt1-finalproject/web_ci:${{ env.TAG }}|" k8s/web/web-deployment.yaml
+          sed -i "s|image: gcr.io/kdt1-finalproject/web_ci:.*|image: gcr.io/kdt1-finalproject/web_ci:${{ env.TAG }}|" petclinic_cd/k8s/web/web-deployment.yaml
 
       - name: Commit and push updated deployment.yaml
         run: |
+          cd petclinic_cd
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add k8s/web/web-deployment.yaml
