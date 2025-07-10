@@ -1,9 +1,16 @@
+name: Build and Push Web Docker Image to GCR
+
+on:
+  push:
+    branches:
+      - master  # 필요에 따라 브랜치명 변경 가능
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code (CI repo)
+      - name: Checkout source code
         uses: actions/checkout@v3
 
       - name: Authenticate to Google Cloud
@@ -18,11 +25,11 @@ jobs:
         id: image_tag
         run: echo "TAG=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
 
-      - name: Build and push Docker image to GCR
+      - name: Build and push Web Docker image to GCR
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./web   # web 소스 위치에 맞게 조정
+          file: ./web/Dockerfile
           push: true
           tags: gcr.io/kdt1-finalproject/web_ci:${{ env.TAG }}
 
@@ -30,11 +37,11 @@ jobs:
         run: |
           git clone https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/peach00angel/petclinic_cd.git
 
-      - name: Update deployment.yaml with new image tag
+      - name: Update web deployment image tag
         run: |
           sed -i "s|image: gcr.io/kdt1-finalproject/web_ci:.*|image: gcr.io/kdt1-finalproject/web_ci:${{ env.TAG }}|" petclinic_cd/k8s/web/web-deployment.yaml
 
-      - name: Commit and push updated deployment.yaml
+      - name: Commit and push updated web deployment.yaml
         run: |
           cd petclinic_cd
           git config user.name "github-actions[bot]"
