@@ -28,8 +28,8 @@ jobs:
       - name: Build and push Web Docker image to GCR
         uses: docker/build-push-action@v5
         with:
-          context: ./web   # web 소스 위치에 맞게 조정
-          file: ./web/Dockerfile
+          context: .   # web 소스 위치에 맞게 조정
+          file: ./Dockerfile
           push: true
           tags: gcr.io/kdt1-finalproject/web_ci:${{ env.TAG }}
 
